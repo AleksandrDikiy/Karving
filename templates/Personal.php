@@ -211,7 +211,7 @@ if (isset($_SESSION['UserID'])) {
     }
   }
 } else
-  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="login.php" class="alert-link">УВІЙТИ</a></div>';
+  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="/wp-login.php" class="alert-link">УВІЙТИ</a></div>';
 ////
 ?>
 </div></div></center>

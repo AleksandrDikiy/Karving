@@ -262,7 +262,7 @@ if($_SESSION['GroupAdm']) {
     } else
       $Limitsql = ' LIMIT 0,'.$_SESSION['LIMIT']-1;  
     ///// ЗАПРОС
-    $sqlt = "SELECT ProductType_ID, ProductType_DateCreate, ProductType_Name, ProductType_Order FROM vProductType";
+    $sqlt = "SELECT ProductType_ID, ProductType_DateCreate, ProductType_Name, NameKod, ProductType_Order FROM vProductType";
     //$sqlt .= $Limitsql;
 //if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     if ($res = $wpdb->get_results($sqlt)) {
@@ -277,7 +277,7 @@ if($_SESSION['GroupAdm']) {
         $n++; // подсчёт кол-ва участников
         $html .= '<TR>';
         $html .= ' <TD align="center">'.$n.'</TD>';
-        $html .= ' <TD align="left">'.$data->ProductType_Name.'</TD>';
+        $html .= ' <TD align="left">'.$data->NameKod.'</TD>';
         $html .= ' <TD align="center">'.$data->ProductType_Order.'</TD>';
         // меню
         $html .= ' <TD ALIGN="center">';
@@ -340,7 +340,7 @@ if($_SESSION['GroupAdm']) {
       echo '<div class="alert alert-danger">НЕМАЄ ДАНИХ! </div>';
   }
 } else
-  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="login.php" class="alert-link">УВІЙТИ</a></div>';
+  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="/wp-login.php" class="alert-link">УВІЙТИ</a></div>';
 ////
 ?>
 </div></div></center>

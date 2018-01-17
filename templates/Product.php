@@ -202,7 +202,7 @@ if($_SESSION['GroupAdm']) {
         // КАТЕГОРІЯ
         $html .= '<TR>';
         $html .= ' <TD align="RIGHT">* КАТЕГОРІЯ : </TD>';
-        $html .= ' <TD><SELECT name="ProductType_ID" id="ProductType_ID" >';
+        $html .= ' <TD><SELECT name="ProductType_ID" id="ProductType_ID" autofocus >';
         $sqlt = "SELECT ProductType_ID, ProductType_Name FROM vProductType";
 // if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
         $res = $wpdb->get_results($sqlt);
@@ -256,7 +256,7 @@ if($_SESSION['GroupAdm']) {
     // КАТЕГОРІЯ
     $html .= '<TR>';
     $html .= ' <TD align="RIGHT">* КАТЕГОРІЯ : </TD>';
-    $html .= ' <TD><SELECT name="ProductType_ID" id="ProductType_ID" >';
+    $html .= ' <TD><SELECT name="ProductType_ID" id="ProductType_ID" autofocus >';
     $sqlt = "SELECT ProductType_ID, ProductType_Name FROM vProductType";
 // if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $res = $wpdb->get_results($sqlt);
@@ -376,7 +376,7 @@ if($_SESSION['GroupAdm']) {
         $html .= '<BUTTON type="submit" class="btn btn-group btn-xs btn-warning" TITLE="редагування">';
         $html .= '<span class="glyphicon glyphicon-pencil"></span> РЕДАГУВАННЯ</BUTTON>';
         $html .= '</FORM></li>';
-        // удаление
+        // ВИДАЛЕННЯ
         if ($_SESSION['GroupAdm']) {
           $html .= '<li>';
           $html .= '<BUTTON type="button" class="btn btn-group btn-xs btn-warning" onclick="delete_record('.$data->Product_ID.')" title="видалення">';
@@ -418,7 +418,7 @@ if($_SESSION['GroupAdm']) {
       echo '<div class="alert alert-danger">НЕМАЄ ДАНИХ! </div>';
   }
 } else
-  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="login.php" class="alert-link">УВІЙТИ</a></div>';
+  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="/wp-login.php" class="alert-link">УВІЙТИ</a></div>';
 ////
 ?>
 </div></div></center>
