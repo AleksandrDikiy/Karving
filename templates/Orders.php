@@ -133,28 +133,15 @@ if($_SESSION['GroupAdm']) {
       if (!$Customers_ID) {
         $wpdb->show_errors();
         $dt = date('Y-m-d H-m-s', time());
-        $res = $wpdb->insert('Customers',
-          array('Customers_DateCreate' => $dt
-          , 'Customers_SurName' => $_POST['Customers_SurName']
-          , 'Customers_Name' => $_POST['Customers_Name']
-          , 'Customers_Partronic' => $_POST['Customers_Partronic']
-          , 'Customers_BirthDay' => $_POST['Customers_BirthDay']
-          , 'Customers_Email' => $_POST['Customers_Email']
-          , 'Customers_Phone1' => $Customers_Phone1
-          , 'Customers_Phone2' => $Customers_Phone2
-          , 'Customers_Phone3' => $Customers_Phone3
-          , 'Customers_From' => $_POST['Customers_From']
-          , 'Customers_To' => $_POST['Customers_To']
-          , 'Customers_Note' => $_POST['Customers_Note']),
-          array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'));
+        $res = $wpdb->insert('Customers', array('Customers_DateCreate' => $dt, 'Customers_SurName' => $_POST['Customers_SurName'], 'Customers_Name' => $_POST['Customers_Name'], 'Customers_Partronic' => $_POST['Customers_Partronic'], 'Customers_BirthDay' => $_POST['Customers_BirthDay'], 'Customers_Email' => $_POST['Customers_Email'], 'Customers_Phone1' => $Customers_Phone1, 'Customers_Phone2' => $Customers_Phone2, 'Customers_Phone3' => $Customers_Phone3, 'Customers_From' => $_POST['Customers_From'], 'Customers_To' => $_POST['Customers_To'], 'Customers_Note' => $_POST['Customers_Note']), array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'));
         $_SESSION['SQLTxt'] = str_replace('"', "'", $wpdb->last_query);
-        $_SESSION['MySQLiEerror'] = 'помилка:'.$wpdb->last_error;
+        $_SESSION['MySQLiEerror'] = 'помилка:' . $wpdb->last_error;
         if ($res) {
           echo '<div class="alert alert-success">УСПІШНЕ ДОДАВАННЯ НОВОГО КЛІЕНТА!</div>';
 //        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),'успішно');
           echo '<BR>query : ' . $wpdb->last_query . '<BR>';
           // ПОЛУЧАЕМ ID КЛИЕНТА
-          $Customers_ID = intval( $wpdb->get_var( "SELECT Customers_ID FROM Customers WHERE Customers_DateCreate='".$dt."'" ));
+          $Customers_ID = intval($wpdb->get_var("SELECT Customers_ID FROM Customers WHERE Customers_DateCreate='" . $dt . "'"));
         } else {
 //        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
           $_SESSION['SQLTxt'] = $sqlt;
@@ -164,59 +151,59 @@ if($_SESSION['GroupAdm']) {
           echo '<BR>error : ' . $wpdb->last_error . '<BR>';
           echo '<div class="alert alert-danger">ПОМИЛКА ДОДАВАННЯ НОВОГО КЛІЕНТА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
         }
-        // ДОБАВЛЯЕМ ЗАКАЗ ПО ЭТОМУ КЛИЕНТУ
-        $dt = date('Y-m-d H-m-s', time());
-        if ($Customers_ID and $dt) {
-          $res = $wpdb->insert('Orders', array('Orders_DateCreate' => $dt, 'Customers_ID' => $Customers_ID, 'Orders_DateOpen' => $_POST['Orders_DateOpen'], 'Orders_DateOrders' => $_POST['Orders_DateOrders'], 'Orders_TimeOrders' => $_POST['Orders_TimeOrders'], 'Orders_Discount' => $_POST['Orders_Discount'], 'Orders_Delivery' => $_POST['Orders_Delivery'], 'Orders_PrePayment' => $_POST['Orders_PrePayment'], 'Orders_Adress' => $_POST['Orders_Adress'], 'Orders_Note' => $_POST['Orders_Note']), array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'));
-          if ($res) {
-            echo '<div class="alert alert-success">УСПІШНЕ ДОДАВАННЯ ЗАКАЗА!</div>';
+      }
+      // ДОБАВЛЯЕМ ЗАКАЗ ПО ЭТОМУ КЛИЕНТУ
+      $dt = date('Y-m-d H-m-s', time());
+      if ($Customers_ID and $dt) {
+        $res = $wpdb->insert('Orders', array('Orders_DateCreate' => $dt, 'Customers_ID' => $Customers_ID, 'Orders_DateOpen' => $_POST['Orders_DateOpen'], 'Orders_DateOrders' => $_POST['Orders_DateOrders'], 'Orders_TimeOrders' => $_POST['Orders_TimeOrders'], 'Orders_Discount' => $_POST['Orders_Discount'], 'Orders_Delivery' => $_POST['Orders_Delivery'], 'Orders_PrePayment' => $_POST['Orders_PrePayment'], 'Orders_Adress' => $_POST['Orders_Adress'], 'Orders_Note' => $_POST['Orders_Note']), array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'));
+        if ($res) {
+          echo '<div class="alert alert-success">УСПІШНЕ ДОДАВАННЯ ЗАКАЗА!</div>';
 //        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),'успішно');
-            echo '<BR>query : ' . $wpdb->last_query . '<BR>';
-            // ПОЛУЧАЕМ ID ЗАКАЗА
-            $Orders_ID = intval($wpdb->get_var("SELECT Orders_ID FROM Orders WHERE Orders_DateCreate='" . $dt . "'"));
-            // ДОБАВЛЯЕМ ПРОДУКТ К ЗАКАЗУ
-            if ($Orders_ID) {
-              $res = $wpdb->insert('OrderProduct', array('Orders_ID' => $Orders_ID, 'Product_ID' => $_POST['Product_ID']), array('%s', '%s', '%s'));
-              if ($res) {
-                echo '<div class="alert alert-success">УСПІШНЕ ДОДАВАННЯ ПРОДУКТА В ЗАКАЗ!</div>';
+          echo '<BR>query : ' . $wpdb->last_query . '<BR>';
+          // ПОЛУЧАЕМ ID ЗАКАЗА
+          $Orders_ID = intval($wpdb->get_var("SELECT Orders_ID FROM Orders WHERE Orders_DateCreate='" . $dt . "'"));
+          // ДОБАВЛЯЕМ ПРОДУКТ К ЗАКАЗУ
+          if ($Orders_ID) {
+            $res = $wpdb->insert('OrderProduct', array('Orders_ID' => $Orders_ID, 'Product_ID' => $_POST['Product_ID']), array('%s', '%s', '%s'));
+            if ($res) {
+              echo '<div class="alert alert-success">УСПІШНЕ ДОДАВАННЯ ПРОДУКТА В ЗАКАЗ!</div>';
 //        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),'успішно');
-                echo '<BR>query : ' . $wpdb->last_query . '<BR>';
-                header('Location: ' . GetLink()); // перенаправление
-              } else {
+              echo '<BR>query : ' . $wpdb->last_query . '<BR>';
+              header('Location: ' . GetLink()); // перенаправление
+            } else {
 //        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
-                $_SESSION['SQLTxt'] = $sqlt;
+              $_SESSION['SQLTxt'] = $sqlt;
 //            echo $_SESSION['MySQLiEerror'] . "<BR>";
 //            if ($_SESSION['GroupAdm']) echo 'SQL = ' . $_SESSION['SQLTxt'] . "<BR>";
-                echo '<BR>query : ' . $wpdb->last_query . '<BR>';
-                echo '<BR>error : ' . $wpdb->last_error . '<BR>';
-                echo '<div class="alert alert-danger">ПОМИЛКА ДОДАВАННЯ ПРОДУКТА В ЗАКАЗ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
-              }
-            } else {
-              echo '<div class="alert alert-danger">ПОМИЛКА! ВІДСУТНІЙ ЗАКАЗ</div>';
               echo '<BR>query : ' . $wpdb->last_query . '<BR>';
               echo '<BR>error : ' . $wpdb->last_error . '<BR>';
-              echo '<BR>dt : ' . $dt . '<BR>';
-              echo '<BR>Orders_ID : ' . $Orders_ID . '<BR>';
+              echo '<div class="alert alert-danger">ПОМИЛКА ДОДАВАННЯ ПРОДУКТА В ЗАКАЗ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
             }
           } else {
-//        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
-            $_SESSION['SQLTxt'] = $sqlt;
-//          echo $_SESSION['MySQLiEerror'] . "<BR>";
-//          if ($_SESSION['GroupAdm']) echo 'SQL = ' . $_SESSION['SQLTxt'] . "<BR>";
+            echo '<div class="alert alert-danger">ПОМИЛКА! ВІДСУТНІЙ ЗАКАЗ</div>';
             echo '<BR>query : ' . $wpdb->last_query . '<BR>';
             echo '<BR>error : ' . $wpdb->last_error . '<BR>';
-            echo '<div class="alert alert-danger">ПОМИЛКА ДОДАВАННЯ ЗАКАЗА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+            echo '<BR>dt : ' . $dt . '<BR>';
+            echo '<BR>Orders_ID : ' . $Orders_ID . '<BR>';
           }
         } else {
-          echo '<div class="alert alert-danger">ПОМИЛКА! ВІДСУТНІЙ КІЛЕНТ</div>';
+//        SetLogs($UserID,'I',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
+          $_SESSION['SQLTxt'] = $sqlt;
+//          echo $_SESSION['MySQLiEerror'] . "<BR>";
+//          if ($_SESSION['GroupAdm']) echo 'SQL = ' . $_SESSION['SQLTxt'] . "<BR>";
           echo '<BR>query : ' . $wpdb->last_query . '<BR>';
           echo '<BR>error : ' . $wpdb->last_error . '<BR>';
-          echo '<BR>dt : ' . $dt . '<BR>';
-          echo '<BR>Customers_ID : ' . $Customers_ID . '<BR>';
+          echo '<div class="alert alert-danger">ПОМИЛКА ДОДАВАННЯ ЗАКАЗА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
         }
-
-        $wpdb->hide_errors();
+      } else {
+        echo '<div class="alert alert-danger">ПОМИЛКА! ВІДСУТНІЙ КІЛЕНТ</div>';
+        echo '<BR>query : ' . $wpdb->last_query . '<BR>';
+        echo '<BR>error : ' . $wpdb->last_error . '<BR>';
+        echo '<BR>dt : ' . $dt . '<BR>';
+        echo '<BR>Customers_ID : ' . $Customers_ID . '<BR>';
       }
+      $wpdb->hide_errors();
+
     } else {
       echo '<div class="alert alert-danger">НЕМАЕ ДОСТУПУ</div>';
     }
