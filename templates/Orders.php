@@ -4,8 +4,8 @@
   *       Version: 1.0.0.0
   *          Name: Orders
 */ 
-//ini_set('display_errors', 1);
-//ini_set('error_reporting', E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('error_reporting', E_ALL);
 session_start();
 include ('body.php'); // подключаем меню
 ?>
@@ -13,6 +13,10 @@ include ('body.php'); // подключаем меню
   function delete_record($del_id) {
     if (confirm("Ви дійсно бажаете ВИДАЛИТИ запис?") === false) { return; }
     document.location.href = window.location.pathname+"?del_id="+$del_id;
+  }
+  function DeleteOrderProduct($del_id) {
+    if (confirm("Ви дійсно бажаете ВИДАЛИТИ запис?") === false) { return; }
+    document.location.href = window.location.pathname+"?DelOrderProduct="+$del_id;
   }
 </script>
 
@@ -26,6 +30,9 @@ if($_SESSION['GroupAdm']) {
   include ('fun.php'); // подключаем библиотеку функций
   $LogName  = 'Orders';
   
+  if (!$_SESSION['LIMIT']) 
+    $_SESSION['LIMIT'] = 10;
+
   if (isset($_GET['pages']))
     $pages = $_GET['pages'];
   elseif (isset($_POST['pages']))
@@ -38,6 +45,12 @@ if($_SESSION['GroupAdm']) {
   elseif (isset($_GET['Orders_ID']))
     $_SESSION['Orders_ID'] = $_GET['Orders_ID'];
     
+  // EditOrderProduct
+  if (isset($_POST['EditOrderProduct']))
+    $EditOrderProduct = $_POST['EditOrderProduct'];
+  elseif (isset($_GET['EditOrderProduct']))
+    $EditOrderProduct = $_GET['EditOrderProduct'];
+  
   // ViewID
   if (isset($_POST['ViewID']))
     $ViewID = $_POST['ViewID'];
@@ -53,6 +66,7 @@ if($_SESSION['GroupAdm']) {
     $_SESSION['FIO'] = $_GET['FIO'];
   else
     $_SESSION['FIO'] = null;
+    
   // Customers_Phone1
   if (isset($_POST['Customers_Phone1']))
     $_SESSION['Customers_Phone1'] = $_POST['Customers_Phone1'];
@@ -60,6 +74,7 @@ if($_SESSION['GroupAdm']) {
     $_SESSION['Customers_Phone1'] = $_GET['Customers_Phone1'];
   else
     $_SESSION['Customers_Phone1'] = null;
+    
   // Orders_DateOrders
   if (isset($_POST['Orders_DateOrders']))
     $_SESSION['Orders_DateOrders'] = $_POST['Orders_DateOrders'];
@@ -94,7 +109,7 @@ if($_SESSION['GroupAdm']) {
 //      SetLogs($UserID,'D',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
       echo '<BR>query : '.$wpdb->last_query.'<BR>';
       echo 'MySQLiError = '.$wpdb->last_error."<BR>";
-      echo '<div class="alert alert-danger">ПОМИЛКА ВИДАЛЕННЯ ТОВАРІВ ПО ЗАКАЗУ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+      echo '<div class="alert alert-danger">ПОМИЛКА ВИДАЛЕННЯ ТОВАРІВ ПО ЗАКАЗУ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
     }
 
     $res = $wpdb->delete( 'Orders', array( 'Orders_ID' => $_GET['del_id'] ) );
@@ -107,7 +122,7 @@ if($_SESSION['GroupAdm']) {
 //      SetLogs($UserID,'D',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
       echo '<BR>query : '.$_SESSION['SQLTxt'].'<BR>';
       echo 'MySQLiError = '.$_SESSION['MySQLiEerror']."<BR>";
-      echo '<div class="alert alert-danger">ПОМИЛКА ВИДАЛЕННЯ ЗАКАЗУ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+      echo '<div class="alert alert-danger">ПОМИЛКА ВИДАЛЕННЯ ЗАКАЗУ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
     }
     echo ButtonBack(GetLink(),null,null); // кнопка НАЗАД
   }
@@ -254,15 +269,15 @@ if($_SESSION['GroupAdm']) {
     // ПРОДУКТ
     $html .= '<TR>';
     $html .= ' <TD align="RIGHT">* ПРОДУКТ : </TD>';
-    $html .= ' <TD><SELECT name="Product_ID" id="Product_ID" >';
-    $sqlt = "SELECT Product_ID, Product_Kod FROM vProduct";
+    $html .= ' <TD><SELECT name="Product_ID" id="Product_ID" autofocus >';
+    $sqlt = "SELECT Product_ID, Product_Kod, KodNoteSummaTypeName FROM vProduct";
 //~ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $res = $wpdb->get_results($sqlt);
     if ( $res ) {
       foreach ($res as $data) {
         $html .= '<OPTION ';
         if ($data->Product_ID == $_SESSION['Product_ID']) $html .= ' SELECTED ';
-        $html .= "VALUE='" . $data->Product_ID . "'>" . $data->Product_Kod . "</OPTION>";
+        $html .= "VALUE='".$data->Product_ID."'>".$data->KodNoteSummaTypeName."</OPTION>";
       }
     }
     $html .= '</SELECT></TD></TR>';  
@@ -296,17 +311,137 @@ if($_SESSION['GroupAdm']) {
     echo $html;
   }
 
-  // ПЕРЕГЛЯД ДАНИХ
+  // ВИДАЛЕННЯ ПРОДУКТА
+  elseif (isset($_GET['DelOrderProduct'])) {
+    // получаем код заказа
+    $Orders_ID = intval( $wpdb->get_var( "SELECT Orders_ID FROM vOrderProduct WHERE OrderProduct_ID='".$_GET['DelOrderProduct']."' LIMIT 1 " ));
+    $wpdb->show_errors();
+    $res = $wpdb->delete( 'OrderProduct', array( 'OrderProduct_ID' => $_GET['DelOrderProduct'] ) );
+    $_SESSION['SQLTxt'] = str_replace('"',"'",$wpdb->last_query);
+    $_SESSION['MySQLiEerror'] = 'помилка:'.$wpdb->last_error;
+    if ($res) {
+      echo '<div class="alert alert-success">УСПІШНЕ ВИДАЛЕННЯ ЗАКАЗУ!</div>';
+        header ('Location: '.GetLink().'?ViewID='.$Orders_ID.''); // перенаправление
+    } else {
+//      SetLogs($UserID,'D',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
+      echo '<BR>query : '.$_SESSION['SQLTxt'].'<BR>';
+      echo 'MySQLiError = '.$_SESSION['MySQLiEerror']."<BR>";
+      echo '<div class="alert alert-danger">ПОМИЛКА ВИДАЛЕННЯ ЗАКАЗУ! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+    }
+    echo ButtonBack(GetLink(),'ViewID',$Orders_ID); // кнопка НАЗАД
+  }
+  // ОНОВЛЕННЯ ПРОДУКТА
+  elseif (isset($_POST['UpdateOrderProduct'])) {
+    if ($_SESSION['GroupAdm']) {
+      // получаем код заказа
+      $Orders_ID = intval( $wpdb->get_var( "SELECT Orders_ID FROM vOrderProduct WHERE OrderProduct_ID='".$_POST['UpdateOrderProduct']."' LIMIT 1 " ));
+      $wpdb->show_errors();
+      $res = $wpdb->update( 'OrderProduct',
+        array(
+          'OrderProduct_Count' => $_POST['OrderProduct_Count']
+        , 'OrderProduct_Summa' => $_POST['OrderProduct_Summa']
+        , 'OrderProduct_Discount' => $_POST['OrderProduct_Discount'] ),
+        array( 'OrderProduct_ID' => $_POST['UpdateOrderProduct'] )
+      );
+  //    $_SESSION['GroupAdm'] = $GroupAdm;
+  //    $_SESSION['UserID'] = $UserID;
+      $_SESSION['SQLTxt'] = str_replace('"',"'",$wpdb->last_query);
+      $_SESSION['MySQLiEerror'] = 'помилка:'.$wpdb->last_error;
+      if ($res) {
+        $wpdb->hide_errors();
+        echo '<div class="alert alert-success">УСПІШНЕ ОНОВЛЕННЯ КЛІЕНТА!</div>';
+  //      SetLogs($UserID,'U',$LogName,str_replace('"',"'",$wpdb->last_query),'успішно');
+        header ('Location: '.GetLink().'?ViewID='.$Orders_ID.''); // перенаправление
+      } else {
+        $wpdb->hide_errors();
+  //      SetLogs($UserID,'U',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
+        echo '<BR>query : '.$_SESSION['SQLTxt'].'<BR>';
+        echo 'MySQLiError = '.$_SESSION['MySQLiEerror']."<BR>";
+        echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ КЛІЕНТА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+      }
+    } else {
+      echo '<div class="alert alert-danger">НЕМАЕ ДОСТУПУ</div>';
+    }
+    echo ButtonBack(GetLink(),'ViewID',$Orders_ID); // кнопка НАЗАД
+  }
+  // РЕДАГУВАННЯ ПРОДУКТА
+  elseif (isset($EditOrderProduct)) {
+    echo '<B>РЕДАГУВАННЯ ДАНИХ</B><BR><BR>';
+    // получаем код заказа
+    $Orders_ID = intval( $wpdb->get_var( "SELECT Orders_ID FROM vOrderProduct WHERE OrderProduct_ID='".$EditOrderProduct."' LIMIT 1 " ));
+    // запрос
+    $sqlt = "SELECT OrderProduct_ID, Orders_ID, Product_ID, OrderProduct_DateCreate
+    , OrderProduct_Count, OrderProduct_Summa, OrderProduct_Discount
+    , Product_Kod, Product_Note, Product_Summa, ProductType_Name, ProductType_Order
+    FROM vOrderProduct ";
+    $sqlt .= " WHERE OrderProduct_ID = '".$EditOrderProduct."'";
+// if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
+    $res = $wpdb->get_results($sqlt);
+    if ( $res ) {
+      $html  = '<FORM role="form" ACTION="'.GetLink().'" id="editform" method="post">';
+      $html .= "<INPUT TYPE='HIDDEN' NAME='UpdateOrderProduct' VALUE='".$EditOrderProduct."'>";
+      foreach ( $res as $data ) {
+        $html .= '<TABLE COLS="2" BORDER="0">';
+        $html .= ' <tr>';
+        $html .= '  <td ALIGN="CENTER" COLSPAN="2"><b>ЗАКАЗ</b></td>';
+        $html .= ' </tr>';
+        // ДАТА СТВОРЕННЯ
+        $html .= '<tr><td ALIGN="RIGHT">ДАТА СТВОРЕННЯ : </td>';
+        $html .= '<td ALIGN="LEFT">'.$data->OrderProduct_DateCreate.'</td></tr>';
+        // КОД ПРОДУКТА
+        $html .= '<tr><td ALIGN="RIGHT">КОД ПРОДУКТА : </td>';
+        $html .= '<td ALIGN="LEFT">'.$data->Product_Kod.'</td></tr>';
+        // ОПИС ПРОДУКТА
+        $html .= '<tr><td ALIGN="RIGHT">ОПИС ПРОДУКТА : </td>';
+        $html .= '<td ALIGN="LEFT">'.$data->Product_Note.'</td></tr>';
+        // СУМА ПРОДУКТА
+        $html .= '<tr><td ALIGN="RIGHT">СУМА ПРОДУКТА : </td>';
+        $html .= '<td ALIGN="LEFT">'.$data->Product_Summa.'</td></tr>';
+        // ТИП ПРОДУКТА
+        $html .= '<tr><td ALIGN="RIGHT">ТИП ПРОДУКТА : </td>';
+        $html .= '<td ALIGN="LEFT">'.$data->ProductType_Name.'</td></tr>';
+        // КУЛЬКІСТЬ
+        $html .= '<tr><td ALIGN="RIGHT">* КУЛЬКІСТЬ : </td>';
+        $html .= '<td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Count" Value="'.$data->OrderProduct_Count.'" /></td></tr>';
+        // СУМА
+        $html .= '<tr><td ALIGN="RIGHT">* СУМА : </td>';
+        $html .= '<td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Summa" Value="'.$data->OrderProduct_Summa.'" /></td></tr>';
+        // ДІСКОНТ
+        $html .= '<tr><td ALIGN="RIGHT">ДІСКОНТ : </td>';
+        $html .= '<td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Discount" Value="'.$data->OrderProduct_Discount.'" /></td></tr>';
+        //
+        $html .= '</TABLE>';
+        // КНОПКИ
+        $html .= '<TABLE BORDER="0"><tr><td>';
+        $html .= '<INPUT TYPE="HIDDEN" TYPE="submit">';
+        $html .= '<BUTTON type="submit" class="btn btn-group btn-warning" TITLE="зерегти ">';
+        $html .= '<span class="glyphicon glyphicon-ok"></span> ЗБЕРЕГТИ</BUTTON></FORM>';
+        $html .= '</td>';
+        // НАЗАД
+        $html .= '<td>';
+        $html .= ButtonBack(GetLink(),'ViewID',$Orders_ID); // кнопка НАЗАД
+        $html .= '</td></tr></table>';
+        echo $html;
+      }
+    } else {
+      echo '<div class="alert alert-danger">НЕМАЄ ДАНИХ! </div>';
+      echo '<div class="alert alert-danger">ПОМИЛКА : '.$wpdb->last_error.'</div>';
+      echo ButtonBack(GetLink(),'ViewID',$Orders_ID); // кнопка НАЗАД
+    }
+  }
+
+  // ПЕРЕГЛЯД ЗАКАЗА
   elseif (isset($ViewID)) {
     echo '<B>ПЕРЕГЛЯД ЗАКАЗА</B><BR><BR>';
     // запрос
     $sqlt = "SELECT Orders_ID, Customers_ID, Orders_DateOpen, Orders_DateOrders, Orders_TimeOrders
-  , Orders_Summa, Orders_Discount, Orders_Delivery, Orders_PrePayment, Orders_Adress, Orders_Note
-  , FIO, Customers_Email, Customers_Phone1, Customers_Phone2, Customers_Phone3
-  , Customers_From, Customers_To, Customers_Note, Customers_BirthDay, ProductKod
+    , Orders_Summa, Orders_Discount, Orders_Delivery, Orders_PrePayment, Orders_Adress, Orders_Note
+    , FIO, Customers_Email, Customers_Phone1, Customers_Phone2, Customers_Phone3
+    , Customers_From, Customers_To, Customers_Note, Customers_BirthDay, ProductKod
+    , ProductCount, ProductSumma, DiscountSumma
     FROM vOrders ";
     $sqlt .= " WHERE Orders_ID = '".$ViewID."'";
-//if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
+// if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $res = $wpdb->get_results($sqlt);
     if ( $res ) {
       foreach ( $res as $data ) {
@@ -314,113 +449,74 @@ if($_SESSION['GroupAdm']) {
         // ----- КЛІЕНТ
         $html .= '<td VALIGN="TOP">';
         $html .= '<TABLE COLS="2" BORDER="0">';
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="CENTER" COLSPAN="2"><b>КЛІЕНТ</b></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="CENTER" COLSPAN="2"><b>КЛІЕНТ</b></td></tr>';
         // ПІБ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ПІБ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->FIO.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ПІБ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->FIO.'</B></td></tr>';
         // ДАТА НАРОДЖЕННЯ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ДАТА НАРОДЖЕННЯ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Customers_BirthDay)).'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ДАТА НАРОДЖЕННЯ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Customers_BirthDay)).'</B></td></tr>';
         // Email
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">Email : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_Email.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">Email : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_Email.'</B></td></tr>';
         // ТЕЛЕФОН 1 
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ТЕЛЕФОН 1 : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_Phone1.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ТЕЛЕФОН 1 : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_Phone1.'</B></td></tr>';
         // ТЕЛЕФОН 2
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ТЕЛЕФОН 2 : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_Phone2.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ТЕЛЕФОН 2 : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_Phone2.'</B></td></tr>';
         // ТЕЛЕФОН 3
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ТЕЛЕФОН 3 : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_Phone3.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ТЕЛЕФОН 3 : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_Phone3.'</B></td></tr>';
         // ХТО ПОРАДИВ АБО ЗВІДКИ ДІЗНАЛИСЯ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ХТО ПОРАДИВ АБО ЗВІДКИ ДІЗНАЛИСЯ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_From.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ХТО ПОРАДИВ АБО ЗВІДКИ ДІЗНАЛИСЯ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_From.'</B></td></tr>';
         // КОМУ МЕНЕ РЕКОМЕНДУВАВ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">КОМУ МЕНЕ РЕКОМЕНДУВАВ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_To.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">КОМУ МЕНЕ РЕКОМЕНДУВАВ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_To.'</B></td></tr>';
         // ПРІМІТКА
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ПРІМІТКА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Customers_Note.'</B></td>';
-        $html .= ' </tr>';
-        // СУМА
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">СУМА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->summa.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ПРІМІТКА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Customers_Note.'</B></td></tr>';
         //
         $html .= '</TABLE></td>';
 
         // ----- ЗАКАЗ
         $html .= '<td VALIGN="TOP">';
         $html .= '<TABLE COLS="2" BORDER="0">';
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="CENTER" COLSPAN="2"><b>ЗАКАЗ</b></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="CENTER" COLSPAN="2"><b>ЗАКАЗ</b></td></tr>';
         // ПРОДУКТ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ПРОДУКТ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->ProductKod.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ПРОДУКТ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->ProductKod.'</B></td></tr>';
         // ДАТА НАДХОДЖЕННЯ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ДАТА НАДХОДЖЕННЯ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Orders_DateOpen)).'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ДАТА НАДХОДЖЕННЯ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Orders_DateOpen)).'</B></td></tr>';
         // ДАТА ЗАКАЗА
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ДАТА ЗАКАЗА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Orders_DateOrders)).'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ДАТА ЗАКАЗА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.date('d.m.Y',strtotime($data->Orders_DateOrders)).'</B></td></tr>';
         // ВРЕМЯ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ВРЕМЯ ЗАКАЗА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_TimeOrders.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ВРЕМЯ ЗАКАЗА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Orders_TimeOrders.'</B></td></tr>';
+        // КІЛЬКІСТЬ
+        $html .= '<tr><td ALIGN="RIGHT">КІЛЬКІСТЬ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->ProductCount.'</B></td></tr>';
+        // СУМА
+        $html .= '<tr><td ALIGN="RIGHT">СУМА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->ProductSumma.'</B></td></tr>';
         // ДІСКОНТ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ДІСКОНТ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_Discount.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ДІСКОНТ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->DiscountSumma.'</B></td></tr>';
         // ПЕРЕДОПЛАТА
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ПЕРЕДОПЛАТА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_PrePayment.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ПЕРЕДОПЛАТА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Orders_PrePayment.'</B></td></tr>';
         // ДОСТАВКА
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ДОСТАВКА : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_Delivery.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ДОСТАВКА : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Orders_Delivery.'</B></td></tr>';
         // АДРЕСА ДОСТАВКИ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">АДРЕСА ДОСТАВКИ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_Adress.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">АДРЕСА ДОСТАВКИ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Orders_Adress.'</B></td></tr>';
         // ПРИМІТКИ
-        $html .= ' <tr>';
-        $html .= '  <td ALIGN="RIGHT">ПРИМІТКИ : </td>';
-        $html .= '  <td ALIGN="LEFT"><B>'.$data->Orders_Note.'</B></td>';
-        $html .= ' </tr>';
+        $html .= '<tr><td ALIGN="RIGHT">ПРИМІТКИ : </td>';
+        $html .= '<td ALIGN="LEFT"><B>'.$data->Orders_Note.'</B></td></tr>';
         $html .= '</TABLE>';
         //---
         $html .= '</td></tr>';
@@ -440,7 +536,7 @@ if($_SESSION['GroupAdm']) {
         , Product_Kod, Product_Note, Product_Summa, ProductType_Name, ProductType_Order
         FROM vOrderProduct ";
         $sqlt2 .= " WHERE Orders_ID = '".$ViewID."'"; 
-//if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt2."<BR>";
+// if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt2."<BR>";
         $res = $wpdb->get_results($sqlt2);
         if ( $res ) {
           $html .= '<TR>';
@@ -453,45 +549,47 @@ if($_SESSION['GroupAdm']) {
           $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>ЗНИЖКА</B></TD>';
           $html .= ' <TD width="20" ALIGN="CENTER" VALIGN="MIDDLE" title="опції"><span class="glyphicon glyphicon-th"></span></TD>';
           $html .= '</TR>';
+          $n=0;
           foreach ( $res as $data2 ) {
             $n++; // подсчёт кол-ва участников
             $html .= '<TR>';
             $html .= ' <TD align="center">'.$n.'</TD>';
-            $html .= ' <TD align="center" >'.$data2->Product_Kod.'</TD>';
+            $html .= ' <TD align="center" ><a href="'.GetLink().'?EditOrderProduct='.$data2->OrderProduct_ID.'" >'.$data2->Product_Kod.'</a></TD>';
             $html .= ' <TD align="left" >'.$data2->Product_Note.'</TD>';
             $html .= ' <TD align="left" >'.$data2->ProductType_Name.'</TD>';
             $html .= ' <TD align="center" >'.$data2->OrderProduct_Count.'</TD>';
             $html .= ' <TD align="center" >'.$data2->OrderProduct_Summa.'</TD>';
             $html .= ' <TD align="center" >'.$data2->OrderProduct_Discount.'</TD>';
             // меню
-//            $html .= ' <TD ALIGN="center">';
-//            $html .= '<div class="btn-group">';
-//            $html .= '<button type="button" class="btn dropdown-toggle btn-xs btn-warning" data-toggle="dropdown">'; // btn-default
-//            $html .= '<span class="caret"></span></button>';
-//            $html .= '<ul class="dropdown-menu" role="menu">';
-//            //-ПЕРЕГЛЯД
-//            $html .= '<li><FORM role="form" ACTION="'.GetLink().'" method="post">';
-//            $html .= ' <INPUT TYPE="HIDDEN" NAME="ViewID" VALUE="'.$data2["OrderProduct_ID"].'">';
-//            $html .= '<BUTTON type="submit" class="btn btn-group btn-xs btn-warning" TITLE="перегляд">';
-//            $html .= '<span class="glyphicon glyphicon-search"></span> перегляд</BUTTON>';
-//            $html .= '</FORM></li>';
-//            //-РЕДАГУВАННЯ
-//            $html .= '<li><FORM role="form" ACTION="'.GetLink().'" method="post">';
-//            $html .= ' <INPUT TYPE="HIDDEN" NAME="EditID" VALUE="'.$data2["OrderProduct_ID"].'">';
-//            $html .= ' <INPUT TYPE="HIDDEN" NAME="Edit_Name" VALUE="'.$data2["Product_Kod"].'">';
-//            $html .= '<BUTTON type="submit" class="btn btn-group btn-xs btn-warning" TITLE="редагування">';
-//            $html .= '<span class="glyphicon glyphicon-pencil"></span> редагування</BUTTON>';
-//            $html .= '</FORM></li>';
-//            // удаление
-//            //~ if ($_SESSION['GroupAdm']) {
-//              $html .= '<li>';
-//              $html .= '<BUTTON type="button" class="btn btn-group btn-xs btn-warning" onclick="delete_record('.$data2["OrderProduct_ID"].')" title="видалення">';
-//              $html .= '<span class="glyphicon glyphicon-remove"></span> видалення</BUTTON>';
-//              $html .= '</li>';
-//            //~ }
-//            $html .= '</ul>';
-//            $html .= '</div>';
-//            $html .= ' </TD>';
+            $html .= ' <TD ALIGN="center">';
+            $html .= '<div class="btn-group">';
+            $html .= '<button type="button" class="btn dropdown-toggle btn-xs btn-warning" data-toggle="dropdown">'; // btn-default
+            $html .= '<span class="caret"></span></button>';
+            $html .= '<ul class="dropdown-menu" role="menu">';
+            //-ПЕРЕГЛЯД
+            // $html .= '<li><FORM role="form" ACTION="'.GetLink().'" method="post">';
+            // $html .= ' <INPUT TYPE="HIDDEN" NAME="ViewID" VALUE="'.$data2->OrderProduct_ID.'">';
+            // $html .= '<BUTTON type="submit" class="btn btn-group btn-xs btn-warning" TITLE="перегляд">';
+            // $html .= '<span class="glyphicon glyphicon-search"></span> ПЕРЕГЛЯД</BUTTON>';
+            // $html .= '</FORM></li>';
+            //-РЕДАГУВАННЯ
+            $html .= '<li><FORM role="form" ACTION="'.GetLink().'" method="post">';
+            $html .= ' <INPUT TYPE="HIDDEN" NAME="EditOrderProduct" VALUE="'.$data2->OrderProduct_ID.'"/>';
+            $html .= ' <INPUT TYPE="HIDDEN" NAME="Orders_ID" VALUE="'.$data2->Orders_ID.'"/>';
+            $html .= '<BUTTON type="submit" class="btn btn-group btn-xs btn-warning" TITLE="редагування"/>';
+            $html .= '<span class="glyphicon glyphicon-pencil"></span> РЕДАГУВАННЯ</BUTTON>';
+            $html .= '</FORM></li>';
+            // ВИДАЛЕННЯ
+            if ($_SESSION['GroupAdm']) {
+              $html .= '<li>';
+              $html .= '<BUTTON type="button" class="btn btn-group btn-xs btn-warning" onclick="DeleteOrderProduct('.$data2->OrderProduct_ID.')" title="видалення">';
+              $html .= '<span class="glyphicon glyphicon-remove"></span> ВИДАЛЕННЯ</BUTTON>';
+              $html .= '</li>';
+            }
+            //
+            $html .= '</ul>';
+            $html .= '</div>';
+            $html .= ' </TD>';
             // 
             $html .= '</TR>';
           }
@@ -508,9 +606,9 @@ if($_SESSION['GroupAdm']) {
       if ($_SESSION['GroupAdm']) {
         if ($wpdb->last_error) {
           echo '<div class="alert alert-danger">ПОМИЛКА : '.$wpdb->last_error.'</div>';
-          echo ButtonBack(GetLink(),null,null); // кнопка НАЗАД
         }
       }
+      echo ButtonBack(GetLink(),null,null); // кнопка НАЗАД
     }
   }
 
@@ -543,31 +641,9 @@ if($_SESSION['GroupAdm']) {
 //      SetLogs($UserID,'U',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
       echo '<BR>query : '.$_SESSION['SQLTxt'].'<BR>';
       echo 'MySQLiError = '.$_SESSION['MySQLiEerror']."<BR>";
-      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ ЗАКАЗА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ ЗАКАЗА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
     }
-    $wpdb->hide_errors();
-    echo ButtonBack(GetLink(),null,null); // кнопка НАЗАД
-
-//    // ОНОВЛЕННЯ ЗАКАЗА
-//    $sqlt  = 'UPDATE Orders SET ';
-//    $sqlt .= ' Orders_DateOpen="'.$_POST['Orders_DateOpen'].'"';
-//    $sqlt .= ',Orders_DateOrders="'.$_POST['Orders_DateOrders'].'"';
-//    $sqlt .= ',Orders_TimeOrders="'.$_POST['Orders_TimeOrders'].'"';
-//    $sqlt .= ',Orders_Summa="'.$_POST['Orders_Summa'].'"';
-//    $sqlt .= ',Orders_Discount="'.$_POST['Orders_Discount'].'"';
-//    $sqlt .= ',Orders_Delivery="'.$_POST['Orders_Delivery'].'"';
-//    $sqlt .= ',Orders_PrePayment="'.$_POST['Orders_PrePayment'].'"';
-//    $sqlt .= ',Orders_Adress="'.$_POST['Orders_Adress'].'"';
-//    $sqlt .= ',Orders_Note="'.$_POST['Orders_Note'].'"';
-//    $sqlt .= ' WHERE Orders_ID = "'.$_POST['UpdateID'].'"';
-//    if (!mysqli_query($db,$sqlt)) {
-//      $_SESSION['MySQLiError'] = mysqli_errno($db) . ": " . $wpdb->last_error;
-//      $_SESSION['SQLTxt'] = $sqlt;
-//      echo $_SESSION['MySQLiError']."<BR>";
-//      echo 'SQL = '.$_SESSION['SQLTxt']."<BR>";
-//      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ ЗАКАЗА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
-//    }
-    $wpdb->show_errors();
+    // ОНОВЛЕННЯ КЛИЕНТА
     $res = $wpdb->update( 'Customers',
       array(
         'Customers_SurName' => $_POST['Customers_SurName']
@@ -596,35 +672,11 @@ if($_SESSION['GroupAdm']) {
 //      SetLogs($UserID,'U',$LogName,str_replace('"',"'",$wpdb->last_query),$wpdb->last_error);
       echo '<BR>query : '.$_SESSION['SQLTxt'].'<BR>';
       echo 'MySQLiError = '.$_SESSION['MySQLiEerror']."<BR>";
-      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ КЛІЕНТА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
+      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ КЛІЕНТА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
     }
     $wpdb->hide_errors();
     header ('Location: '.GetLink()); // перенаправление
     echo ButtonBack(GetLink(),null,null); // кнопка НАЗАД
-
-//    // ОНОВЛЕННЯ КЛІЕНТА
-//    $sqlt  = 'UPDATE Customers SET ';
-//    $sqlt .= ' Customers_SurName="'.$_POST['Customers_SurName'].'"';
-//    $sqlt .= ',Customers_Name="'.$_POST['Customers_Name'].'"';
-//    $sqlt .= ',Customers_Partronic="'.$_POST['Customers_Partronic'].'"';
-//    $sqlt .= ',Customers_BirthDay="'.$_POST['Customers_BirthDay'].'"';
-//    $sqlt .= ',Customers_Email="'.$_POST['Customers_Email'].'"';
-//    $sqlt .= ',Customers_Phone1="'.$_POST['Customers_Phone1'].'"';
-//    $sqlt .= ',Customers_Phone2="'.$_POST['Customers_Phone2'].'"';
-//    $sqlt .= ',Customers_Phone3="'.$_POST['Customers_Phone3'].'"';
-//    $sqlt .= ',Customers_From="'.$_POST['Customers_From'].'"';
-//    $sqlt .= ',Customers_To="'.$_POST['Customers_To'].'"';
-//    $sqlt .= ',Customers_Note="'.$_POST['Customers_Note'].'"';
-//    $sqlt .= ' WHERE Customers_ID="'.$_POST['Customers_ID'].'"';
-//    if (mysqli_query($db,$sqlt))
-//      header ('Location: '.GetLink()); // перенаправление
-//    else {
-//      $_SESSION['MySQLiError'] = mysqli_errno($db) . ": " . $wpdb->last_error;
-//      $_SESSION['SQLTxt'] = $sqlt;
-//      echo $_SESSION['MySQLiError']."<BR>";
-//      echo 'SQL = '.$_SESSION['SQLTxt']."<BR>";
-//      echo '<div class="alert alert-danger">ПОМИЛКА ОНОВЛЕННЯ КЛІЕНТА! ВІДПРАВИТИ ПОВІДОМЛЕННЯ ДО <a href="/SendMail.php" target="_blank" class="alert-link">АДМІНІСТРАТОРА</a></div>';
-//    }
   }
   // РЕДАГУВАННЯ
   elseif (isset($_POST['EditID'])) {
@@ -634,20 +686,14 @@ if($_SESSION['GroupAdm']) {
     }
     // запрос
     $sqlt = "SELECT Orders_ID, Customers_ID, Orders_DateOpen, Orders_DateOrders, Orders_TimeOrders
-  , Orders_Summa, Orders_Discount, Orders_Delivery, Orders_PrePayment, Orders_Adress, Orders_Note
-  , FIO, Customers_SurName, Customers_Name, Customers_Partronic, ProductKod
-  , Customers_Email, Customers_Phone1, Customers_Phone2, Customers_Phone3
-  , Customers_From, Customers_To, Customers_Note, Customers_BirthDay, Orders_DateCreate
+    , Orders_Summa, Orders_Discount, Orders_Delivery, Orders_PrePayment, Orders_Adress, Orders_Note
+    , FIO, Customers_SurName, Customers_Name, Customers_Partronic, ProductKod
+    , Customers_Email, Customers_Phone1, Customers_Phone2, Customers_Phone3
+    , Customers_From, Customers_To, Customers_Note, Customers_BirthDay, Orders_DateCreate
+    , ProductCount, ProductSumma, DiscountSumma
     FROM vOrders ";
-//    $sqlt = "SELECT o.Orders_ID, o.Customers_ID, o.Orders_DateCreate, o.Orders_DateOpen, o.Orders_DateOrders, o.Orders_TimeOrders
-//  , o.Orders_Summa, o.Orders_Discount, o.Orders_Delivery, o.Orders_PrePayment, o.Orders_Adress, o.Orders_Note
-//  , o.FIO, Customers_SurName, Customers_Name, Customers_Partronic
-//  , o.Email, o.Customers_Email, o.CustomersPhone, o.ProductKod
-//  , o.Customers_Phone1, o.Customers_Phone2, o.Customers_Phone3
-//  , o.Customers_From, o.Customers_To, o.Customers_Note, o.Customers_BirthDay
-//    FROM vOrders o";
     $sqlt .= " WHERE Orders_ID = '".$_POST['EditID']."'";
-if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
+// if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $res = $wpdb->get_results($sqlt);
     if ( $res ) {
       $html  = '<FORM role="form" ACTION="'.GetLink().'" id="editform" method="post">';
@@ -659,7 +705,7 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
         $html .= '  <td ALIGN="CENTER" COLSPAN="2"><b>ЗАКАЗ</b></td>';
         $html .= ' </tr>';
         // ДАТА СТВОРЕННЯ
-        $html .= '<tr><td ALIGN="RIGHT">* ДАТА СТВОРЕННЯ : </td>';
+        $html .= '<tr><td ALIGN="RIGHT">ДАТА СТВОРЕННЯ : </td>';
         $html .= '<td ALIGN="LEFT">'.$data->Orders_DateCreate.'</td></tr>';
         // ДАТА НАДХОДЖЕННЯ
         $html .= '<tr><td ALIGN="RIGHT">* ДАТА НАДХОДЖЕННЯ : </td>';
@@ -752,18 +798,33 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     // ТОВАР
     $html .= '<TR>';
     $html .= ' <TD align="RIGHT">* ТОВАР : </TD>';
-    $html .= ' <TD><SELECT name="Product_ID" id="Product_ID" >';
-    $sqlt = "SELECT Product_ID, Product_Kod FROM vProduct";
+    $html .= ' <TD><SELECT name="Product_ID" id="Product_ID" autofocus >';
+    $sqlt = "SELECT Product_ID, Product_Kod, KodNoteSummaTypeName FROM vProduct";
 //if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $res = $wpdb->get_results($sqlt);
     if ( $res ) {
       foreach ($res as $data) {
         $html .= '<OPTION ';
         if ($data->Product_ID == $_SESSION['Product_ID']) $html .= ' SELECTED ';
-        $html .= "VALUE='" . $data->Product_ID . "'>" . $data->Product_Kod . "</OPTION>";
+        $html .= "VALUE='".$data->Product_ID."'>".$data->KodNoteSummaTypeName."</OPTION>";
       }
     }
     $html .= '</SELECT></TD></TR>';
+    // КІЛЬКІСТЬ
+    $html .= ' <tr>';
+    $html .= '  <td ALIGN="RIGHT">КІЛЬКІСТЬ : </td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Count" Value="1" size="10" /></td>';
+    $html .= ' </tr>';
+    // СУМА
+    $html .= ' <tr>';
+    $html .= '  <td ALIGN="RIGHT">СУМА : </td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Summa" Value="0" size="10" /></td>';
+    $html .= ' </tr>';
+    // ДІСКОНТ
+    $html .= ' <tr>';
+    $html .= '  <td ALIGN="RIGHT">ДІСКОНТ ТОВАРА: </td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="OrderProduct_Discount" Value="0" /></td>';
+    $html .= ' </tr>';
     // ДАТА НАДХОДЖЕННЯ
     $html .= ' <tr>';
     $html .= '  <td ALIGN="RIGHT">* ДАТА НАДХОДЖЕННЯ : </td>';
@@ -779,25 +840,20 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     $html .= '  <td ALIGN="RIGHT">* ВРЕМЯ ЗАКАЗА : </td>';
     $html .= '  <td ALIGN="LEFT"><INPUT TYPE="time" NAME="Orders_TimeOrders" Value="'.date('H:i').'"  required /></td>';
     $html .= ' </tr>';
-    //~ // СУМА
-    //~ $html .= ' <tr>';
-    //~ $html .= '  <td ALIGN="RIGHT">* СУМА : </td>';
-    //~ $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_Summa" size="10"  /></td>';
-    //~ $html .= ' </tr>';
     // ДІСКОНТ
     $html .= ' <tr>';
-    $html .= '  <td ALIGN="RIGHT">ДІСКОНТ : </td>';
-    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_Discount" /></td>';
+    $html .= '  <td ALIGN="RIGHT">ДІСКОНТ ЗАКАЗА: </td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_Discount" Value="0" /></td>';
     $html .= ' </tr>';
     // ПЕРЕДОПЛАТА
     $html .= ' <tr>';
     $html .= '  <td ALIGN="RIGHT">ПЕРЕДОПЛАТА : </td>';
-    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_PrePayment" /></td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_PrePayment" Value="0" /></td>';
     $html .= ' </tr>';
     // ДОСТАВКА
     $html .= ' <tr>';
     $html .= '  <td ALIGN="RIGHT">ДОСТАВКА : </td>';
-    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_Delivery" /></td>';
+    $html .= '  <td ALIGN="LEFT"><INPUT TYPE="text" NAME="Orders_Delivery" Value="0" /></td>';
     $html .= ' </tr>';
     // АДРЕСА ДОСТАВКИ
     $html .= ' <tr>';
@@ -913,7 +969,7 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     }
     echo '</TR></TABLE>';
 
-    $html .= '<TABLE border="0">';
+    $html = '<TABLE border="0">';
     $html .= '<FORM action="'.GetLink().'" id="FindForm" method="post">';
     //  ФІЛЬТР ПО МІСЯЦЮ НАРОДЖЕННЯ
     $html .= '<TR>';
@@ -941,8 +997,11 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     
     // общее кол-во
     $cnt = intval( $wpdb->get_var( "SELECT COUNT(Orders_ID) as cnt FROM vOrders" ));
-
-    $number_records = $_SESSION['LIMIT'];
+    if ($_SESSION['LIMIT']) 
+      $number_records = $_SESSION['LIMIT'];
+    else
+      $number_records = 10;
+    
     $n=0;
     if ($cnt==0)
       $number_pages = 0;
@@ -963,26 +1022,27 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     } else
       $Limitsql = ' LIMIT 0,'.$_SESSION['LIMIT']-1;  
     ///// ЗАПРОС
-    $sqlt = "SELECT o.Orders_ID, o.Customers_ID, o.Orders_DateCreate, o.Orders_DateOpen, o.Orders_DateOrders, o.Orders_TimeOrders
-  , o.Orders_Summa, o.Orders_Discount, o.Orders_Delivery, o.Orders_PrePayment, o.Orders_Adress, o.Orders_Note
-  , o.FIO, o.OrderCustomersEmail, o.Customers_Email, o.Customers_Phone, o.ProductKod
-  , o.Customers_Phone1, o.Customers_Phone2, o.Customers_Phone3
-  , o.Customers_From, o.Customers_To, o.Customers_Note, o.Customers_BirthDay
-    FROM vOrders o"; 
+    $sqlt = "SELECT Orders_ID, Customers_ID, Orders_DateCreate, Orders_DateOpen, Orders_DateOrders, Orders_TimeOrders
+    , Orders_Summa, Orders_Discount, Orders_Delivery, Orders_PrePayment, Orders_Adress, Orders_Note
+    , FIO, OrderCustomersEmail, Customers_Email, Customers_Phone, ProductKod
+    , Customers_Phone1, Customers_Phone2, Customers_Phone3
+    , Customers_From, Customers_To, Customers_Note, Customers_BirthDay
+    , ProductCount, ProductSumma, DiscountSumma
+    FROM vOrders "; 
 
     if ($_SESSION['Customers_Phone1'] or $_SESSION['Customers_BirthDay'] or $_SESSION['Orders_DateOrders'] or $_SESSION['FIO']) {
-      $sqlf .= " WHERE o.Orders_ID>0 ";
+      $sqlf = " WHERE Orders_ID>0 ";
       if ($_SESSION['Orders_DateOrders'])
-        $sqlf .= " AND o.Orders_DateOrders = '".$_SESSION['Orders_DateOrders']."'";
+        $sqlf .= " AND Orders_DateOrders = '".$_SESSION['Orders_DateOrders']."'";
       if ($_SESSION['Customers_Phone1'])
-        $sqlf .= " AND o.Customers_Phone1 LIKE '%".$_SESSION['Customers_Phone1']."%'";
+        $sqlf .= " AND Customers_Phone1 LIKE '%".$_SESSION['Customers_Phone1']."%'";
       if ($_SESSION['FIO'])
-        $sqlf .= " AND o.FIO LIKE '%".$_SESSION['FIO']."%' ";
+        $sqlf .= " AND FIO LIKE '%".$_SESSION['FIO']."%' ";
       $sqls = "SELECT SUM(cnt) AS cnt, SUM(summa) AS summa FROM vOrders";
 //      $sqls .= $sqlf;
     } else {
       if ($_SESSION['BirthMonth']>0)
-        $sqlf .= " WHERE MONTH(o.Customers_BirthDay)='".$_SESSION['BirthMonth']."'";
+        $sqlf .= " WHERE MONTH(Customers_BirthDay)='".$_SESSION['BirthMonth']."'";
     }
     $sqlt .= $sqlf;
 //    $sqlt .= $Limitsql;
@@ -1008,11 +1068,11 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>КЛІЕНТ</B></TD>';
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>ТЕЛЕФОН</B></TD>';
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>ТОВАР</B></TD>';
-      $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>EMAIL</B></TD>';
+      // $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>EMAIL</B></TD>';
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>ДАТА ЗАКАЗА</B></TD>';
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>ВРЕМЯ ЗАКАЗА</B></TD>';
       $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>КІЛЬКІСТЬ</B></TD>';
-//      $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>СУМА</B></TD>';
+      $html .= ' <TD ALIGN="CENTER" VALIGN="MIDDLE"><B>СУМА</B></TD>';
       $html .= ' <TD width="20" ALIGN="CENTER" VALIGN="MIDDLE" title="опції"><span class="glyphicon glyphicon-th"></span></TD>';
       $html .= '</TR>';
       //~ $n=0;
@@ -1021,17 +1081,17 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
         $html .= '<TR>';
         $html .= ' <TD align="center">'.$n.'</TD>';
         $html .= ' <TD align="left" TITLE="кто посоветовал : '.$data->Customers_From.'" >'.$data->FIO.'</TD>';
-        $html .= ' <TD align="center" TITLE="телефон : '.$data->Customers_Phone.'" >'.$data->Customers_Phone1.'</TD>';
+        $html .= ' <TD align="center" TITLE="телефон : '.$data->Customers_Phone2.'" >'.$data->Customers_Phone1.'</TD>';
         $html .= ' <TD align="center" TITLE="дата создания : '.date('d.m.Y',strtotime($data->Orders_DateCreate)).'" >'.$data->ProductKod.'</TD>';
-        $html .= ' <TD align="center" TITLE="Email : '.$data->summa.'" >'.$data->Customers_Email.'</TD>';
+        // $html .= ' <TD align="center" TITLE="сума : '.$data->ProductSumma.'" >'.$data->Customers_Email.'</TD>';
         if ($data->Orders_DateOrders) 
           $DateOrder=date('d.m.Y',strtotime($data->Orders_DateOrders));
         else
           $DateOrder='';
         $html .= ' <TD align="center" TITLE="доставка : '.$data->Orders_Delivery.'" ><a href="'.GetLink().'?ViewID='.$data->Orders_ID.'" >'.$DateOrder.'</a></TD>';
         $html .= ' <TD align="center" TITLE="предоплата : '.$data->Orders_PrePayment.'" >'.$data->Orders_TimeOrders.'</TD>';
-        $html .= ' <TD align="center" TITLE="адреса : '.$data->Orders_Adress.'" >'.$data->cnt.'</TD>';
-//        $html .= ' <TD align="RIGHT" TITLE="дісконт : '.$data->Orders_Discount.'" >'.$data->summa.'</TD>';
+        $html .= ' <TD align="center" TITLE="адреса : '.$data->Orders_Adress.'" >'.$data->ProductCount.'</TD>';
+        $html .= ' <TD align="RIGHT" TITLE="дісконт : '.$data->Orders_Discount.'" >'.$data->ProductSumma.'</TD>';
         // меню
         $html .= ' <TD ALIGN="center">';
         $html .= '<div class="btn-group">';
@@ -1053,12 +1113,11 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
         $html .= '<span class="glyphicon glyphicon-pencil"></span> РЕДАГУВАННЯ</BUTTON>';
         $html .= '</FORM></li>';
         // удаление
-        //~ if ($_SESSION['GroupAdm']) {
-          $html .= '<li>';
-          $html .= '<BUTTON type="button" class="btn btn-group btn-xs btn-warning" onclick="delete_record('.$data->Orders_ID.')" title="видалення">';
-          $html .= '<span class="glyphicon glyphicon-remove"></span> ВИДАЛЕННЯ</BUTTON>';
-          $html .= '</li>';
-        //~ }
+        $html .= '<li>';
+        $html .= '<BUTTON type="button" class="btn btn-group btn-xs btn-warning" onclick="delete_record('.$data->Orders_ID.')" title="видалення">';
+        $html .= '<span class="glyphicon glyphicon-remove"></span> ВИДАЛЕННЯ</BUTTON>';
+        $html .= '</li>';
+        //
         $html .= '</ul>';
         $html .= '</div>';
         $html .= ' </TD>';
@@ -1112,7 +1171,7 @@ if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
     }
   }
 } else {
-  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="login.php" class="alert-link">УВІЙТИ</a></div>';
+  echo '<div class="alert alert-danger">НЕМАЄ ДОСТУПУ! <a href="/wp-login.php" class="alert-link">УВІЙТИ</a></div>';
 }
 ////
 ?>
