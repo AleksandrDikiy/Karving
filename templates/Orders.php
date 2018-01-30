@@ -1044,6 +1044,7 @@ if($_SESSION['GroupAdm']) {
       if ($_SESSION['BirthMonth']>0)
         $sqlf .= " WHERE MONTH(Customers_BirthDay)='".$_SESSION['BirthMonth']."'";
     }
+    $sqlf .= " ORDER BY Orders_DateOpen DESC ";
     $sqlt .= $sqlf;
 //    $sqlt .= $Limitsql;
 //if ($_SESSION['GroupAdm']) echo "SQL = ".$sqlt."<BR>";
